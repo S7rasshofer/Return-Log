@@ -1,0 +1,15 @@
+User,Date,Order,Skus,Action,Notes,IC,Additional Notes,,Update Date
+carne,6/7/2024 18:55,bby01-8063911,"6398447, 6848221,622814",Return Processed,,,,,
+carne,6/7/2024 18:57,bby019879879654,6543214,Misship,Looks like dookie,2024-06-07 21:50:33,,
+john_doe,2024-01-15 10:25:00,ORD123456,SKU1234|SKU5678,Return,Customer reported item damaged,12345,Need to process refund,2024-01-16 12:30:00
+jane_smith,2024-02-20 14:12:00,ORD234567,SKU2345|SKU6789,Exchange,Item not as described,23456,Send replacement,2024-02-21 15:40:00
+alice_johnson,2024-03-10 09:45:00,ORD345678,SKU3456|SKU7890,Refund,Customer changed mind,34567,Process refund,2024-03-11 11:55:00
+bob_williams,12/1/24,ORD456789,SKU4567|SKU8901,Return Processed,Lost Items,carne,No Need,2024-06-07 22:19:01,,
+carol_miller,2024-05-18 13:05:00,ORD567890,SKU5678|SKU9012,Exchange,Defective item,56789,Send new item,2024-05-19 14:10:00
+david_davis,2024-06-25 11:30:00,ORD678901,SKU6789|SKU0123,Refund,Wrong item received,67890,Arrange pick-up,2024-06-26 12:45:00
+emma_brown,2024-07-30 15:20:00,ORD789012,SKU7890|SKU1234,Return,Customer found better price,78901,Authorize return,2024-07-31 16:55:00
+frank_clark,2024-08-12 08:50:00,ORD890123,SKU8901|SKU2345,Exchange,Size mismatch,89012,Check size details,2024-08-13 09:30:00
+grace_harris,2024-09-03 10:10:00,ORD901234,SKU9012|SKU3456,Refund,Item not as expected,90123,Initiate refund,2024-09-04 11:20:00
+henry_lewis,2024-10-22 17:45:00,ORD012345,SKU0123|SKU4567,Return,Customer no longer needs,01234,Process return,2024-10-23 18:35:00
+carne,2024-06-07 22:22:05,BBY01-48765134,6483221,Overgoods,Looked like gatorade exploded
+carne,2024-06-07 22:37:21,bby01-123456,8878912,Overgoods,Looks like cookie monster threw up
