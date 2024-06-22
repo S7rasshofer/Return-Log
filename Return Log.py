@@ -10,6 +10,7 @@ import time
 import random
 
 
+
 def get_default_user():
     return getpass.getuser()
 
@@ -25,7 +26,6 @@ def lock_file(file, retries=5, delay=0.1):
 
 def unlock_file(file):
     msvcrt.locking(file.fileno(), msvcrt.LK_UNLCK, 1)
-    
 
 
 def submit_order():
@@ -86,12 +86,18 @@ def update_order():
         
         show_toast("Success", "Record updated successfully.")
 
-        
+def clear_entries():
+    user_entry.delete("1.0", tk.END)
+    submit_entry.delete("1.0", tk.END)
+    order_no_entry.delete("1.0", tk.END)
+    sku_entry.delete("1.0", tk.END)
+    action_taken_var.set("")
+    notes_entry.delete("1.0", tk.END)
+    ic_entry.delete("1.0", tk.END)
+    ad_notes_entry.delete("1.0", tk.END)
+    customer_entry.delete("1.0", tk.END)       
 
-
-#---^^ Saving & Writing  //  Logging & Updating vv-----------------------------
-
-
+#---^^ Saving & Writing  //  Modify Views vv-----------------------------
 
 def show_toast(title, message):
     notification.notify(
@@ -100,8 +106,15 @@ def show_toast(title, message):
         timeout=10  # duration in seconds
     )
 
+def toggle_visibility(widget):
+    if widget.winfo_viewable():
+        widget.grid_remove()
+    else:
+        widget.grid()
+
 def research_mode():
     global treeview_enabled
+    
     if treeview_enabled:
         file_menu.entryconfig("Disable Research Mode", label="Enable Research Mode")
         toggle_visibility(customer_label)
@@ -117,7 +130,7 @@ def research_mode():
         toggle_visibility(reject_taken_dropdown)
         toggle_visibility(reject_label)
         toggle_visibility(treeview)
-        root.geometry("365x255")  # Adjust window size after removing Treeview
+        root.geometry("365x255")  
     else:
         file_menu.entryconfig("Enable Research Mode", label="Disable Research Mode")
         toggle_visibility(customer_label)
@@ -133,24 +146,60 @@ def research_mode():
         toggle_visibility(reject_taken_dropdown)
         toggle_visibility(reject_label)
         toggle_visibility(treeview)
-        root.geometry("2600x455")  # Adjust window size after adding Treeview
         auto_size_treeview_columns(treeview)
+        update_treeview()
+        new_width = treeview.winfo_reqwidth() + 400
+        new_height = treeview.winfo_reqheight() + 190
+        root.geometry(f"{new_width}x{new_height}")
+    
     treeview_enabled = not treeview_enabled
-    auto_size_treeview_columns(treeview)
     update_treeview()
+    
+def sort_treeview_by_submit_date():
+    treeview_sort_column = "Submit Date"
+    treeview_sort_order = "descending"  # or "ascending" for ascending order
+    treeview.sort(treeview_sort_column, order=treeview_sort_order)
+
+def filter_view(event):
+    if event.keysym == 'Return':  # Check if the Enter key is pressed
+        widget = event.widget
+        
+        # Map widgets to their corresponding filter fields
+        widget_mapping = {
+            order_no_entry: "Order",
+            customer_entry: "Customer",
+            user_entry: "User",
+            submit_entry: "Date",
+            sku_entry: "Skus",
+            notes_entry: "Notes",
+            ic_entry: "IC",
+            ad_notes_entry: "Additional Notes",
+            reject_taken_dropdown: "Rejection"
+        }
+        
+        # Determine the filter field and text
+        filter_by = widget_mapping.get(widget, None)
+        if filter_by:
+            if isinstance(widget, tk.Text):
+                filter_text = widget.get("1.0", "end-1c").strip().lower()
+            else:
+                filter_text = widget.get().strip().lower()
+            update_treeview(filter_by, filter_text)
 
 
-def update_treeview():
+def update_treeview(filter_by=None, filter_text=None):
     # Clear the existing items in the Treeview
     treeview.delete(*treeview.get_children())
     
-    # Reapply the current theme settings
-    
-
     # Open the CSV file and read the data
     with open('returns.csv', 'r') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
+            # Check if filtering is needed
+            if filter_by and filter_text:
+                if filter_text not in row[filter_by].lower():
+                    continue
+            
             # Extract data based on the headers
             user = row.get("User", "")
             date = row.get("Date", "")
@@ -167,8 +216,9 @@ def update_treeview():
             # Insert the data into the Treeview
             treeview.insert("", "end", values=(user, date, order, skus, action, notes, ic, additional_notes, customer, rejection, update_date))
     
-    apply_custom_settings(theme_var.get())
+    
     auto_size_treeview_columns(treeview)
+    apply_custom_settings(theme_var.get())
 
 def auto_size_treeview_columns(treeview):
     # Auto-size the columns based on the content
@@ -180,87 +230,6 @@ def auto_size_treeview_columns(treeview):
             treeview.column(col, width=max_width + 10)  # Add a little padding
         else:
             treeview.column(col, width=tkfont.Font().measure(col.title()) + 10)  # Default width
-
-
-def sort_treeview_by_submit_date():
-    # Sort the Treeview by the "Submit Date" column in descending order
-    treeview_sort_column = "Submit Date"
-    treeview_sort_order = "descending"  # or "ascending" for ascending order
-    treeview.sort(treeview_sort_column, order=treeview_sort_order)
-
-def filter_view(event):
-    widget = event.widget
-
-    # Determine which entry is being typed into
-    if widget == order_no_entry:
-        filter_text = order_no_entry.get("1.0", tk.END).strip().lower()
-        filter_by = "Order"
-    elif widget == customer_entry:
-        filter_text = customer_entry.get("1.0", tk.END).strip().lower()
-        filter_by = "Customer"
-    else:
-        return
-
-    # Clear out the entries to their default settings
-    if filter_by == "Order":
-        customer_entry.delete("1.0", tk.END)
-    elif filter_by == "Customer":
-        order_no_entry.delete("1.0", tk.END)
-
-    user_entry.delete("1.0", tk.END)
-    submit_entry.delete("1.0", tk.END)
-    sku_entry.delete("1.0", tk.END)
-    action_taken_var.set("Return Processed")
-    notes_entry.delete("1.0", tk.END)
-    ic_entry.delete("1.0", tk.END)
-    ad_notes_entry.delete("1.0", tk.END)
-    rejection_var.set("Return Processed")  # Reset rejection_var
-    
-    #sort_treeview_by_submit_date()
-    #auto_size_treeview_columns(treeview)
-    
-    def update_view():
-        # Clear the existing items in the Treeview
-        treeview.delete(*treeview.get_children())
-
-        with open('returns.csv', 'r') as file:
-            csv_reader = csv.DictReader(file)
-            for row in csv_reader:
-                if filter_text in row[filter_by].lower():
-                    # Extract data based on the headers
-                    user = row.get("User", "")
-                    submit_date = row.get("Date", "")
-                    order = row.get("Order", "")
-                    skus = row.get("Skus", "")
-                    action = row.get("Action", "")
-                    notes = row.get("Notes", "")
-                    ic = row.get("IC", "")
-                    additional_notes = row.get("Additional Notes", "")
-                    customer = row.get("Customer", "")
-                    rejection = row.get("Rejection", "")  
-                    update_date = row.get("Update Date", "")
-                    
-
-                    # Check if the value is blank and replace it with an empty string
-                    user = user if user else ""
-                    submit_date = submit_date if submit_date else ""
-                    order = order if order else ""
-                    skus = skus if skus else ""
-                    action = action if action else ""
-                    notes = notes if notes else ""
-                    ic = ic if ic else ""
-                    additional_notes = additional_notes if additional_notes else ""
-                    customer = customer if customer else ""
-                    rejection = rejection if rejection else ""
-                    update_date = update_date if update_date else ""
-                    
-                    treeview.insert("", "end", values=(user, submit_date, order, skus, action, notes, ic, additional_notes, customer, rejection, update_date))
-
-    # Update the treeview after a short delay (200ms)
-    root.after(200, update_view)
-    auto_size_treeview_columns(treeview)
-    apply_custom_settings(theme_var.get())
-    sort_treeview_by_submit_date()
 
 def view_to_box(event):
     # Get the selected item
@@ -289,36 +258,9 @@ def view_to_box(event):
 
 
 
-def toggle_visibility(widget):
-    if widget.winfo_viewable():
-        widget.grid_remove()
-    else:
-        widget.grid()
-
-
 
 
 #-- vv Theme and Styles vv-----------------------------------------------------
-
-
-
-settings = {
-    "Light": {"background": "#FFFFFF", "foreground": "#000000", "entry_background": "#F0F0F0", "entry_foreground": "#000000",
-              "treeview_background": "#FFFFFF", "treeview_foreground": "#000000", "header_background": "#F0F0F0", "header_foreground": "#000000",
-              "odd_row_background": "#F0F0F0", "odd_row_foreground": "#000000", "even_row_background": "#FFFFFF", "even_row_foreground": "#000000"},
-    "Dark": {"background": "#1E1E1E", "foreground": "#FFFFFF", "entry_background": "#333333", "entry_foreground": "#FFFFFF",
-             "treeview_background": "#1E1E1E", "treeview_foreground": "#FFFFFF", "header_background": "#333333", "header_foreground": "#FFFFFF",
-             "odd_row_background": "#333333", "odd_row_foreground": "#FFFFFF", "even_row_background": "#1E1E1E", "even_row_foreground": "#FFFFFF"},
-    "Cyber": {"background": "#0F0F0F", "foreground": "#33FF33", "entry_background": "#0F0F0F", "entry_foreground": "#33FF33",
-              "treeview_background": "#333333", "treeview_foreground": "#FFFFFF", "header_background": "#555555", "header_foreground": "#FFFFFF",
-              "odd_row_background": "#333333", "odd_row_foreground": "#FFFFFF", "even_row_background": "#444444", "even_row_foreground": "#FFFFFF"},
-    "Core Blue": {"background": "#003B64", "foreground": "#FFFFFF", "entry_background": "#00234E", "entry_foreground": "#FFFFFF",
-                  "treeview_background": "#003B64", "treeview_foreground": "#FFFFFF", "header_background": "#00234E", "header_foreground": "#FFFFFF",
-                  "odd_row_background": "#00234E", "odd_row_foreground": "#FFFFFF", "even_row_background": "#003B64", "even_row_foreground": "#FFFFFF"}
-}
-
-
-
 
 
 
@@ -333,8 +275,46 @@ def change_theme(event=None):
     except Exception as e:
         print(f"Error in change_theme: {e}")
 
+settings = {
+    "Light": {
+        "foreground": "#000000", # Also text
+        "background": "#FFFFFF",
+        "tertiary": "#F0F0F0",
+    },
+    
+    "Neutral": {
+        "foreground": "#333333",
+        "background": "#bcbcbc",
+        "tertiary": "#CCCCCC",
+    },
+    
+    "Forest": {
+        "foreground": "#FFFFFF",
+        "background": "#1a2f1d",
+        "tertiary": "#2e7e0b",
+    },
+
+    "Dark": {
+        "foreground": "#FFFFFF",
+        "background": "#1E1E1E",
+        "tertiary": "#333333",
+    },
+
+    "Cyber": {
+        "foreground": "#33FF33",
+        "background": "#0F0F0F",
+        "tertiary": "#333333",
+    },
+
+    "Core Blue": {
+        "foreground": "#FFFFFF",
+        "background": "#003B64",
+        "tertiary": "#00234E",
+    }
+}
 
 def apply_custom_settings(theme):
+    global theme_settings  # Declare theme_settings as a global variable
     if theme in settings:
         theme_settings = settings[theme]
         root.configure(bg=theme_settings["background"])
@@ -342,29 +322,29 @@ def apply_custom_settings(theme):
             if isinstance(widget, tk.Label):
                 widget.configure(bg=theme_settings["background"], fg=theme_settings["foreground"])
             elif isinstance(widget, ttk.Combobox):
-                style.configure('Custom.TCombobox', fieldbackground=theme_settings["entry_background"], foreground=theme_settings["entry_foreground"])
+                style.configure('Custom.TCombobox', fieldbackground=theme_settings["tertiary"], foreground=theme_settings["foreground"])
                 widget.configure(style='Custom.TCombobox')
             elif isinstance(widget, tk.Entry) or isinstance(widget, tk.Text):
-                widget.configure(bg=theme_settings["entry_background"], fg=theme_settings["entry_foreground"])
+                widget.configure(bg=theme_settings["tertiary"], fg=theme_settings["foreground"])
             elif isinstance(widget, ttk.Button):
                 style.configure('Custom.TButton', background=theme_settings["background"], foreground=theme_settings["foreground"])
-                widget.configure(style='Custom.TButton')
-
-        # Update Treeview colors and appearance
-        style.configure('Custom.Treeview', background=theme_settings["treeview_background"], foreground=theme_settings["treeview_foreground"], fieldbackground=theme_settings["background"])
-        style.configure('Custom.Treeview.Heading', background=theme_settings["header_background"], foreground=theme_settings["header_foreground"])
-        style.configure('Custom.Treeview', rowheight=25)  # Adjust row height as needed
-        treeview.tag_configure('evenrow', background=theme_settings["even_row_background"], foreground=theme_settings["even_row_foreground"])
-        treeview.tag_configure('oddrow', background=theme_settings["odd_row_background"], foreground=theme_settings["odd_row_foreground"])
-        for i, item in enumerate(treeview.get_children()):
-            if i % 2 == 0:
-                treeview.item(item, tags=('evenrow',))
-            else:
-                treeview.item(item, tags=('oddrow',))
-
-
-
-
+                style.map('Custom.TButton',
+                          background=[('active', theme_settings["tertiary"]), ('!active', theme_settings["background"])],
+                          foreground=[('active', theme_settings["foreground"]), ('!active', theme_settings["foreground"])])
+                # Define Custom.TButtonHover based on Custom.TButton
+                style.configure('Custom.TButtonHover', background=theme_settings["tertiary"], foreground=theme_settings["foreground"])
+            elif isinstance(widget, ttk.Treeview):
+                style.configure('Custom.Treeview', background=theme_settings["background"], foreground=theme_settings["foreground"], fieldbackground=theme_settings["tertiary"])
+                style.configure('Custom.Treeview.Heading', background=theme_settings["tertiary"], foreground=theme_settings["foreground"])
+                style.configure('Custom.Treeview', rowheight=25)  # Adjust row height as needed
+                widget.configure(style='Custom.Treeview')
+                for i, item in enumerate(widget.get_children()):
+                    if i % 2 == 0:
+                        widget.item(item, tags=('evenrow',))
+                    else:
+                        widget.item(item, tags=('oddrow',))
+                widget.tag_configure('evenrow', background=theme_settings["background"], foreground=theme_settings["foreground"])
+                widget.tag_configure('oddrow', background=theme_settings["tertiary"], foreground=theme_settings["foreground"])
 
 
 #-- vv The interface vv--------------------------------------------------------
@@ -378,7 +358,7 @@ root.geometry("365x255")
 
 style = ttk.Style()
 initial_theme = "Cyber"  
-
+res_on = 0
 
 # Menu
 menu_bar = tk.Menu(root)
@@ -397,16 +377,17 @@ theme_var = tk.StringVar(value=initial_theme)
 for theme in settings.keys():
     theme_menu.add_radiobutton(label=theme, variable=theme_var, command=change_theme)
 
+
 # Widgets
 customer_label = tk.Label(root, text="Customer", anchor="e")
 customer_label.grid(row=0, column=0, padx=10, pady=5)
 customer_label.grid_remove()
-customer_entry = tk.Text(root, height=1, width=30)
+customer_entry = tk.Entry(root, width=30)
 customer_entry.grid(row=0, column=1, padx=10, pady=5)
 customer_entry.grid_remove()
 
 tk.Label(root, text="Order No", anchor="e").grid(row=1, column=0, padx=10, pady=5)
-order_no_entry = tk.Text(root, height=1, width=30)
+order_no_entry = tk.Entry(root, width=30)
 order_no_entry.grid(row=1, column=1, padx=10, pady=5)
 
 
@@ -427,14 +408,14 @@ notes_entry.grid(row=4, column=1, padx=10, pady=5)
 user_label = tk.Label(root, text="User")
 user_label.grid(row=5, column=0, padx=10, pady=5)
 user_label.grid_remove()
-user_entry = tk.Text(root, height=1, width=30)
+user_entry = tk.Entry(root, width=30)
 user_entry.grid(row=5, column=1, padx=10, pady=5)
 user_entry.grid_remove()
 
 submit_label = tk.Label(root, text="Submit Date")
 submit_label.grid(row=6, column=0, padx=10, pady=5)
 submit_label.grid_remove()
-submit_entry = tk.Text(root, height=1, width=30)
+submit_entry = tk.Entry(root, width=30)
 submit_entry.grid(row=6, column=1, padx=10, pady=5)
 submit_entry.grid_remove()
 
@@ -445,7 +426,7 @@ ad_notes_entry = tk.Text(root, height=5, width=30)
 ad_notes_entry.grid(row=7, column=1, padx=10, pady=5)
 ad_notes_entry.grid_remove()
 
-ic_entry = tk.Text(root, height=5, width=30)
+ic_entry = tk.Entry(root, width=30)
 ic_entry.grid(row=8, column=1, padx=10, pady=5)
 ic_entry.grid_remove()
 
@@ -458,12 +439,16 @@ reject_taken_dropdown.grid(row=9, column=1, padx=10, pady=5)
 reject_taken_dropdown.grid_remove()
 
 submit_button = ttk.Button(root, text="Submit", command=submit_order, style='Custom.TButton')
-submit_button.grid(row=10, column=0, columnspan=2, padx=10, pady=10)
+submit_button.grid(sticky="e", row=10, column=0, columnspan=2, padx=10, pady=10)
+
 
 update_button = ttk.Button(root, text="Update", command=update_order, style='Custom.TButton')
-update_button.grid(row=10, column=0, columnspan=2, padx=10, pady=10)
+update_button.grid(sticky="e", row=10, column=0, columnspan=2, padx=10, pady=10)
 update_button.grid_remove()
 
+
+clear_button = ttk.Button(root, text="Clear", command=clear_entries, style='Custom.TButton')
+clear_button.grid(sticky="w", row=10, column=1, columnspan=2, padx=10, pady=10)
 
 
 # Treeview
@@ -472,14 +457,11 @@ treeview = ttk.Treeview(root, columns=columns, show="headings")
 for col in columns:
     treeview.heading(col, text=col)
 treeview.grid(row=0, column=2, rowspan=30, columnspan=len(columns), sticky="nsew", padx=10, pady=5)
-
-
-order_no_entry.bind("<KeyRelease>", filter_view)
-treeview.bind("<ButtonRelease-1>", view_to_box)
 treeview.grid_remove()
 
-order_no_entry.bind("<KeyRelease>", filter_view)
-customer_entry.bind("<KeyRelease>", filter_view)
+root.bind('<Return>', filter_view)
+#customer_entry.bind("<Return>", lambda e: "break") #break for new line for single widget.
+treeview.bind("<ButtonRelease-1>", view_to_box)
 
 style.theme_use('default')
 apply_custom_settings(initial_theme)
